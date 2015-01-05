@@ -1,0 +1,22 @@
+﻿<# var debug = false; #>
+<# if(debug) { #>
+<#= "<!--" #>
+<# foreach(var relatedModelMetaData in ModelMetadata.RelatedEntities) { #>
+<#= "AssociationPropertyName: " + relatedModelMetaData.AssociationPropertyName #>
+<#= "DisplayPropertyName: " + relatedModelMetaData.DisplayPropertyName #>
+<#= "EntitySetName: " + relatedModelMetaData.EntitySetName #>
+<#= "ForeignKeyPropertyNames" #>
+<#= "=======================" #>
+<# foreach(var fkName in relatedModelMetaData.ForeignKeyPropertyNames) { #>
+	<#= fkName #>
+<# } #>
+<#= "PrimaryKeyNames" #>
+<#= "===============" #>
+<# foreach(var pkName in relatedModelMetaData.PrimaryKeyNames) { #>
+	<#= pkName #>
+<# } #>
+<#= "ShortTypeName: " + relatedModelMetaData.ShortTypeName #>
+<#= "TypeName: " + relatedModelMetaData.TypeName #>
+<# } #>
+<#= "-->" #>
+<# } #>

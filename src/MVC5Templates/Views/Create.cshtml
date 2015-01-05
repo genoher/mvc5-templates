@@ -1,0 +1,112 @@
+﻿@using MVC5Templates.Models
+@model ReportViewModel
+
+<!--
+AssociationPropertyName: Connection
+DisplayPropertyName: Name
+EntitySetName: Connections
+ForeignKeyPropertyNames
+=======================
+	ConnectionId
+PrimaryKeyNames
+===============
+	ConnectionId
+ShortTypeName: Connection
+TypeName: MVC5Templates.Models.Connection
+AssociationPropertyName: SqlType
+DisplayPropertyName: Code
+EntitySetName: SqlTypes
+ForeignKeyPropertyNames
+=======================
+	SqlTypeId
+PrimaryKeyNames
+===============
+	SqlTypeId
+ShortTypeName: SqlType
+TypeName: MVC5Templates.Models.SqlType
+-->
+
+
+@{
+    ViewBag.Title = "Create Report";
+}
+
+<h2>@ViewBag.Title</h2>
+
+<div class="container">
+	@using (Html.BeginForm()) 
+	{
+		@Html.AntiForgeryToken()
+    
+        <h4>Report</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.Name, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Report.Name, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Report.Name, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.Description, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Report.Description, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Report.Description, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.ConnectionId, htmlAttributes: new { @class = "control-label" })
+				@Html.DropDownListFor(model => model.Report.ConnectionId, new SelectList(Model.Connections, "ConnectionId", "Name"), htmlAttributes: new { @class = "form-control" }) 
+                @Html.ValidationMessageFor(model => model.Report.ConnectionId, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.SqlTypeId, htmlAttributes: new { @class = "control-label" })
+				@Html.DropDownListFor(model => model.Report.SqlTypeId, new SelectList(Model.SqlTypes, "SqlTypeId", "Name"), htmlAttributes: new { @class = "form-control" }) 
+                @Html.ValidationMessageFor(model => model.Report.SqlTypeId, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.Sql, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Report.Sql, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Report.Sql, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.UserIdUpdated, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Report.UserIdUpdated, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Report.UserIdUpdated, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+			<div class="form-group col-md-5">
+				@Html.LabelFor(model => model.Report.Updated, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Report.Updated, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Report.Updated, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="form-group col-md-5">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                @Html.ActionLink("Cancel", "Index", null, new { @class = "btn btn-default" })
+            </div>
+        </div>
+	}
+</div>
+
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

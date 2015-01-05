@@ -1,0 +1,11 @@
+﻿<#
+/*View Model*/
+var relatedProperties = ModelMetadata.RelatedEntities.ToDictionary(item => item.ForeignKeyPropertyNames[0]);
+var usesViewModel = relatedProperties.Keys.Count > 0;
+
+var viewModelClassName = ViewDataTypeShortName + "ViewModel";
+var modelNamespace = ViewDataTypeName.Replace("." + ViewDataTypeShortName, "");
+var viewModelVar = viewModelClassName.Substring(0, length:1).ToLower() + viewModelClassName.Substring(1);
+
+var modelPropertyName = String.Empty;
+#>

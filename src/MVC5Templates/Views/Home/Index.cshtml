@@ -1,0 +1,57 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div class="jumbotron">
+    <h1>MVC5 Templates</h1>
+    <p class="lead">MVC5 Templates is a revised version of the <em>MVC5 Controller with views, using Entity Framework</em> T4 templates that ship with MVC5. MVC5 Templates are slightly more opinionated, make a couple more assumptions and hence, are able to do a bit more for you.</p>
+    @*<p><a href="http://asp.net" class="btn btn-primary btn-lg">Learn more &raquo;</a></p>*@
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>What's been changed?</h2>
+        <h4>Controllers</h4>
+        <p>
+            <ul>
+                <li>DB persistence/changes wrap a fresh DbContext object in a using statement
+                    <pre>using(var db = new DbContext()){... db.SaveChanges();}.</pre>
+                </li>
+                <li>The module level DbContext object creates simple POCOs that are not proxied or tracked. It's just used for quick data retrieval.</li>
+                <li>ViewModel!! Any related foreign key relationship data required to populate drop down lists in the view are passed as a <code>List&lt;T&gt;</code> into a strongly typed ViewModel.</li>
+            </ul>
+        </p>
+        <h4>Views</h4>
+        <p>
+            <ul>
+                <li>Bootstrap's <code>form-group</code> and <code>form-control</code> CSS classes used throughout. (This has meant a requirement on System.Web.Mvc 5.1.0.0 or above).</li>
+                <li><code>DropDownList&gt;TModel&lt;</code> helper methods are completed in full and refer to the ViewModel defined in the Controller class.</li>
+                <li>The <code>viewbag.title</code> property is set once and re-used</li>
+                <li><em>Back To List</em> links have been changed into Cancel buttons.</li>
+                <li>The <code>Index</code> view uses a responsive, striped, bordered, condensed table.</li>
+                <li>The <code>Delete</code> view asks a more specific question.</li>
+            </ul>
+        </p>
+        <p>Basically, all the things that annoy me or I find I'm fixing every time I run the MVC Controller wizard have been fixed.</p>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2>About this solution</h2>
+        <p>The only true deliverables for this solution are the contents of the <code>CodeTemplates</code> folder. There's a post successful build task that copies the contents of the CodeTemplates folder up to the root. Those are the files that should be included in a CodeTemplates folder in your own MVC project. Or... just import the nuget package instead.</p>
+        <p>The Northwind DB model is used to demo and test the T4 templates. Entity Framework Code First objects have been reverse-engineered from the familiar SQL Server Northwind DB. The project has then been configured to create a new localdb with some initialisation code to populate a local mdf file with Northwind data for Shippers, Customers, Employees and Orders. So the solution should work out of the box, no SQL Server needs to be installed and when you press F5 you should get a new freshly populated DB every time.</p>
+        <p>The templates make a couple of convention assumptions that the Northwind DB doesn't follow. Firstly that entities have a <code>Name</code> property and secondly that foreign keys have the same name in both tables. In order to preserve the Northwind model, and allow it be re-generated from scratch if needs be, additional partial classes have been created for <code>Customer</code>, <code>Employee</code> and <code>Shipper</code> that map the assumed missing properties. The Name property is used in building out the drop down lists and in your own project you could just replace Name with something appropriate for your Model or get with the program just use Name :-D.</p>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2>Using the templates in your own project</h2>
+        <p>
+            <ol>
+                <li>Copy the CodeTemplates folder into your MVC project and include all the files as part of the project (or just import the Nuget package :-D).</li>
+                <li>Run the MVC controller wizard to build the controller and views that you require. You'll need to select the <em>MVC5 Controller with views, using Entity Framework</em> option.</li>
+                <li><em>Ctrl + .</em> any new ViewModels into existence. The scaffolding templates can't actually create the ViewModel class for you in your project so......the easiest way is to get Visual Studio to create what's missing (Ctrl+. brings up the context helper menu where you can select <em>Generate class for 'FooViewModel'</em>). Once you've Ctrl+.'ed the ViewModel into existence you should add a <code>public</code> access modifier to the class and in the controller scroll down to the <code>RefreshViewModel</code> private function. You'll need to Ctrl+. -> Generate Property Stub each of the <code>List&lt;T&gt;</code> collections set on the ViewModel. Finally, the ViewModel class will also have a property for the actual Model object itself that needs to be generated. Scroll to the <code>Create [HttpPost]</code> or either of the <code>Edit</code> methods and Ctrl+. that into existence as well. Basically, when your project builds you're done with the Ctrl+.</li>
+            </ol>
+        </p>
+    </div>
+</div>

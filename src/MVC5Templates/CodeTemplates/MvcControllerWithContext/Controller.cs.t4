@@ -1,0 +1,388 @@
+﻿<#@ template language="C#" HostSpecific="True" Debug="True" #>
+<#@ output extension="cs" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Data.Linq" #>
+<#@ ScaffoldingAssembly Processor="ScaffoldingAssemblyLoader" #>
+<#
+string routePrefix;
+if (String.IsNullOrEmpty(AreaName)) 
+{
+    routePrefix = ControllerRootName;
+}
+else
+{
+    routePrefix = AreaName + "/" + ControllerRootName;
+}
+#>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="Microsoft.AspNet.Scaffolding.Core.Metadata" #>
+<#@ parameter type="System.String" name="ControllerName" #>
+<#@ parameter type="System.String" name="ControllerRootName" #>
+<#@ parameter type="System.String" name="Namespace" #>
+<#@ parameter type="System.String" name="AreaName" #>
+<#@ parameter type="System.String" name="ContextTypeName" #>
+<#@ parameter type="System.String" name="ModelTypeName" #>
+<#@ parameter type="System.String" name="ModelVariable" #>
+<#@ parameter type="Microsoft.AspNet.Scaffolding.Core.Metadata.ModelMetadata" name="ModelMetadata" #>
+<#@ parameter type="System.String" name="EntitySetVariable" #>
+<#@ parameter type="System.Boolean" name="UseAsync" #>
+<#@ parameter type="System.Boolean" name="IsOverpostingProtectionRequired" #>
+<#@ parameter type="System.String" name="BindAttributeIncludeText" #>
+<#@ parameter type="System.String" name ="OverpostingWarningMessage" #>
+<#@ parameter type="System.Collections.Generic.HashSet<System.String>" name="RequiredNamespaces" #>
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Entity;
+using System.Linq;
+<# if (UseAsync) { #>
+using System.Threading.Tasks;
+<# } #>
+using System.Net;
+using System.Web;
+using System.Web.Mvc;
+<# foreach (var namespaceName in RequiredNamespaces) { #>
+using <#= namespaceName #>;
+<# } #>
+
+namespace <#= Namespace #>
+{
+<#
+    var contextTypeName = ContextTypeName;
+    var entitySetName = ModelMetadata.EntitySetName;
+    var entitySetVar = EntitySetVariable ?? (String.IsNullOrEmpty(entitySetName) ? entitySetName : (entitySetName.Substring(0, length:1).ToLowerInvariant() + entitySetName.Substring(1)));
+    var primaryKeyName = ModelMetadata.PrimaryKeys[0].PropertyName;
+    var primaryKeyShortTypeName = ModelMetadata.PrimaryKeys[0].ShortTypeName;
+    var primaryKeyDefaultValue = ModelMetadata.PrimaryKeys[0].DefaultValue;
+    var primaryKeyType = ModelMetadata.PrimaryKeys[0].TypeName;
+    var primaryKeyNullableTypeName = GetNullableTypeName(primaryKeyType, primaryKeyShortTypeName);
+    var lambdaVar = ModelVariable[0];
+    var relatedProperties = ModelMetadata.RelatedEntities.ToDictionary(item => item.AssociationPropertyName);
+
+	/* IsOverpostingProtectionRequired */
+	var overPostingProtection = IsOverpostingProtectionRequired;
+	overPostingProtection = false;
+    string bindAttribute;
+    if (overPostingProtection == true)
+    {
+        bindAttribute = String.Format("[Bind(Include = \"{0}\")] ", BindAttributeIncludeText);
+    }
+    else
+    {
+        bindAttribute = String.Empty;
+    }
+
+	/*Action Task Decleration*/
+	string actionTaskDecl = UseAsync ? "async Task<ActionResult>" : "ActionResult";
+
+	/*ViewModel Class Name*/
+	var viewModelClassName = ModelTypeName + "ViewModel";
+	var viewModelVar = viewModelClassName.Substring(0, length:1).ToLower() + viewModelClassName.Substring(1);
+	var viewModelClassNameLong = Namespace.Replace("Controllers", "Models.") + viewModelClassName;
+
+	/*Build ViewModel Defn & Refresh Lists*/
+	bool usesViewModel = false;
+	var vmDefn = String.Empty;
+	var vmRefreshLists = String.Empty;
+	foreach (var property in relatedProperties.Values)
+	{
+		vmDefn += "\r\n\t\t\t\t" + property.EntitySetName + " = _db." + property.EntitySetName + ".OrderBy(ob => ob.Name).ToList(),";
+		vmRefreshLists += "\r\n\t\t\t" + viewModelVar + "." + property.EntitySetName + " = _db." + property.EntitySetName + ".OrderBy(ob => ob.Name).ToList();";
+	}
+
+	if (!String.IsNullOrEmpty(vmDefn))
+	{
+		vmDefn = "var vm = new " + viewModelClassNameLong + "\r\n"
+						+ "\t\t\t{"
+						+ vmDefn.Substring(0, vmDefn.Length - 1) + "\r\n"
+						+ "\t\t\t};";
+	}
+
+	if (!String.IsNullOrEmpty(vmRefreshLists))
+	{
+		usesViewModel = true;
+		vmRefreshLists = vmRefreshLists.Substring(2);
+	}
+#>
+    public class <#= ControllerName #> : Controller
+    {
+        private <#= ContextTypeName #> _db;
+
+        public <#= ControllerName #>()
+        {
+            _db = new <#= contextTypeName #>();
+            _db.Configuration.ProxyCreationEnabled = false;
+        }
+
+        // GET: <#= routePrefix #>
+		public <#= actionTaskDecl #> Index()
+        {
+<#  var includeExpressions = "";
+        includeExpressions = String.Join("", relatedProperties.Values.Select(property => String.Format(".Include({0} => {0}.{1})\r\n\t\t\t\t\t\t\t\t", lambdaVar, property.AssociationPropertyName)));
+#>
+<# if(!String.IsNullOrEmpty(includeExpressions)) { #>
+<#		if (UseAsync) { #>
+			var <#= entitySetVar #> = await _db.<#= entitySetName #><#= includeExpressions #>.ToListAsync();
+<#		} else { #>
+			var <#= entitySetVar #> = _db.<#= entitySetName #><#= includeExpressions #>.ToList();
+<#		} #>
+<# } else { #>
+<#		if (UseAsync) { #>
+			var <#= entitySetVar #> = await _db.<#= entitySetName #>
+											   .ToListAsync();
+<#		} else { #>
+            return View(_db.<#= entitySetName #><#= includeExpressions #>.ToList());
+			var <#= entitySetVar #> = _db.<#= entitySetName #>
+										 .ToList();
+<#		} #>
+<# } #>
+
+			return View(<#= entitySetVar #>);
+        }
+
+        // GET: <#= routePrefix #>/Details/5
+		public <#= actionTaskDecl #> Details(<#= primaryKeyNullableTypeName #> id)
+        {
+            if (id == null)
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+
+<# if(String.IsNullOrEmpty(includeExpressions)) { #>
+<# if (UseAsync) { #>
+            var <#= ModelVariable #> = await _db.<#= entitySetName #>.FindAsync(id);
+<# } else { #>
+            var <#= ModelVariable #> = _db.<#= entitySetName #>.Find(id);
+<# } #>
+<# } else { #>
+<# if (UseAsync) { #>
+            var <#= ModelVariable #> = await _db.<#= entitySetName #><#= includeExpressions #>.SingleOrDefaultAsync(w => w.<#= primaryKeyName #> == id);
+<# } else { #>
+            var <#= ModelVariable #> = _db.<#= entitySetName #><#= includeExpressions #>.SingleOrDefault(w => w.<#= primaryKeyName #> == id);
+<# } #>
+<# } #>
+
+            if (<#= ModelVariable #> == null)
+                return HttpNotFound();
+
+            return View(<#= ModelVariable #>);
+        }
+
+        // GET: <#= routePrefix #>/Create
+        public ActionResult Create()
+        {
+<#
+#>
+<# if (usesViewModel) { #>
+			var vm = new <#= viewModelClassNameLong #>();
+			vm = RefreshViewModel(vm);
+
+			return View(vm);
+<# } else { #>
+
+            return View();
+<# } #>
+        }
+
+        // POST: <#= routePrefix #>/Create
+<# if (overPostingProtection) {
+    foreach (var line in OverpostingWarningMessage.Split(new string[] { Environment.NewLine }, StringSplitOptions.None)) { 
+#>
+        // <#= line #>
+<# } } #>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+<# if (usesViewModel) { #>
+		public <#= actionTaskDecl #> Create(<#= viewModelClassNameLong #> <#= viewModelVar #>)
+<# } else { #>
+		public <#= actionTaskDecl #> Create(<#= bindAttribute #><#= ModelTypeName #> <#= ModelVariable #>)
+<# } #>
+        {
+            if (ModelState.IsValid)
+            {
+<# if(!String.IsNullOrEmpty(primaryKeyType) && String.Equals("System.Guid", primaryKeyType, StringComparison.OrdinalIgnoreCase)) { #>
+                <#= ModelVariable #>.<#= primaryKeyName #> = Guid.NewGuid();
+<# } #>
+				using(var db = new <#= contextTypeName #>())
+				{
+<# if (usesViewModel) { #>
+					db.<#= entitySetName #>.Add(<#= viewModelVar #>.<#= ModelTypeName #>);
+<# } else { #>
+					db.<#= entitySetName #>.Add(<#= ModelVariable #>);
+<# } #>
+<# if (UseAsync) {#>
+					await db.SaveChangesAsync();
+<# } else { #>
+					db.SaveChanges();
+<# } #>
+				}
+                return RedirectToAction("Index");
+            }
+
+<# if (usesViewModel) { #>
+			<#= viewModelVar #> = RefreshViewModel(<#= viewModelVar #>);
+			return View(<#= viewModelVar #>);
+<# } else { #>
+            return View(<#= ModelVariable #>);
+<# } #>
+        }
+
+        // GET: <#= routePrefix #>/Edit/5
+		public <#= actionTaskDecl #> Edit(<#= primaryKeyNullableTypeName #> id)
+        {
+            if (id == null)
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+
+<# if (UseAsync) { #>
+            var <#= ModelVariable #> = await _db.<#= entitySetName #>.FindAsync(id);
+<# } else { #>
+            var <#= ModelVariable #> = _db.<#= entitySetName #>.Find(id);
+<# } #>
+            if (<#= ModelVariable #> == null)
+                return HttpNotFound();
+
+<# if (usesViewModel) { #>
+			var <#= viewModelVar #> = new <#= viewModelClassNameLong #>();
+			<#= viewModelVar #>.<#= ModelTypeName #> = <#= ModelVariable #>;
+			<#= viewModelVar #> = RefreshViewModel(<#= viewModelVar #>);
+
+			return View(<#= viewModelVar #>);
+<# } else { #>
+            return View(<#= ModelVariable #>);
+<# } #>
+        }
+
+        // POST: <#= routePrefix #>/Edit/5
+<# if (overPostingProtection) {
+    foreach (var line in OverpostingWarningMessage.Split(new string[] { Environment.NewLine }, StringSplitOptions.None)) { 
+#>
+        // <#= line #>
+<# } } #>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+<# if (usesViewModel) { #>
+		public <#= actionTaskDecl #> Edit(<#= viewModelClassNameLong #> <#= viewModelVar #>)
+<# } else { #>
+		public <#= actionTaskDecl #> Edit(<#= bindAttribute #><#= ModelTypeName #> <#= ModelVariable #>)
+<# } #>
+        {
+            if (ModelState.IsValid)
+            {
+				using(var db = new <#= contextTypeName #>())
+				{
+<# if (usesViewModel) { #>
+					db.Entry(<#= viewModelVar #>.<#= ModelTypeName #>).State = EntityState.Modified;
+<# } else { #>
+					db.Entry(<#= ModelVariable #>).State = EntityState.Modified;
+<# } #>
+<# if (UseAsync) { #>
+					await db.SaveChangesAsync();
+<# } else { #>
+					db.SaveChanges();
+<# } #>
+				}
+                return RedirectToAction("Index");
+            }
+
+<# if (usesViewModel) { #>
+			<#= viewModelVar #> = RefreshViewModel(<#= viewModelVar #>);
+			return View(<#= viewModelVar #>);
+<# } else { #>
+            return View(<#= ModelVariable #>);
+<# } #>
+        }
+
+        // GET: <#= routePrefix #>/Delete/5
+		public <#= actionTaskDecl #> Delete(<#= primaryKeyNullableTypeName #> id)
+        {
+            if (id == null)
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+
+<# if(String.IsNullOrEmpty(includeExpressions)) { #>
+<# if (UseAsync) { #>
+            var <#= ModelVariable #> = await _db.<#= entitySetName #>.FindAsync(id);
+<# } else { #>
+            var <#= ModelVariable #> = _db.<#= entitySetName #>.Find(id);
+<# } #>
+<# } else { #>
+<# if (UseAsync) { #>
+            var <#= ModelVariable #> = await _db.<#= entitySetName #><#= includeExpressions #>.SingleOrDefaultAsync(w => w.<#= primaryKeyName #> == id);
+<# } else { #>
+            var <#= ModelVariable #> = _db.<#= entitySetName #><#= includeExpressions #>.SingleOrDefault(w => w.<#= primaryKeyName #> == id);
+<# } #>
+<# } #>
+
+            if (<#= ModelVariable #> == null)
+                return HttpNotFound();
+
+            return View(<#= ModelVariable #>);
+        }
+
+        // POST: <#= routePrefix #>/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+		public <#= actionTaskDecl #> DeleteConfirmed(<#= primaryKeyShortTypeName #> id)
+        {
+			using(var db = new <#= contextTypeName #>())
+			{
+<# if (UseAsync) { #>
+				var <#= ModelVariable #> = await db.<#= entitySetName #>.FindAsync(id);
+<# } else { #>
+				var <#= ModelVariable #> = db.<#= entitySetName #>.Find(id);
+<# } #>
+				db.<#= entitySetName #>.Remove(<#= ModelVariable #>);
+<# if (UseAsync) { #>
+				await db.SaveChangesAsync();
+<# } else { #>
+				db.SaveChanges();
+<# } #>
+			}
+
+            return RedirectToAction("Index");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _db.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+		
+<# if(usesViewModel) { #>
+		private <#= viewModelClassNameLong #> RefreshViewModel(<#= viewModelClassName #> <#= viewModelVar #>)
+		{
+<#= vmRefreshLists #>
+
+			return <#= viewModelVar #>;
+		}
+<# } #>
+	}
+}
+<#+
+// This function converts the primary key short type name to its nullable equivalent when possible. This is required to make
+// sure that an HTTP 400 error is thrown when the user tries to access the edit, delete, or details action with null values.
+    string GetNullableTypeName(string typeName, string shortTypeName)
+    {
+        // The exceptions are caught because if for any reason the type is user defined, then the short type name will be used.
+        // In that case the user will receive a server error if null is passed to the edit, delete, or details actions.
+        Type primaryKeyType = null;
+        try
+        {
+            primaryKeyType = Type.GetType(typeName);
+        }
+        catch
+        {
+        }
+        if (primaryKeyType != null && (primaryKeyType.IsPrimitive || IsGuid(typeName)))
+        {
+            return shortTypeName + "?";
+        }
+        return shortTypeName;
+    }
+
+    bool IsGuid(string typeName) {
+        return String.Equals("System.Guid", typeName, StringComparison.OrdinalIgnoreCase);
+    }
+#>
